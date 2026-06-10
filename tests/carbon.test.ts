@@ -186,3 +186,123 @@ describe('Bachelier vs Black-Scholes comparison', () => {
   });
 
 });
+// ── Permanence Risk ECL Tests ─────────────────────────────────────────────
+import {
+  creditECL, portfolioECL, scenarioWeightedECL,
+  ProjectType, Registry, CarbonCredit
+} from '../src/models/carbon/permanenceRisk';
+
+const REDD_CREDIT: CarbonCredit = {
+  id: 'REDD-001',
+  projectType:          ProjectType.REDD_PLUS,
+  vintage:              2021,
+  tonnes:               10000,
+  pricePerTonne:        15,
+  permanencePeriod:     40,
+  yearsElapsed:         3,
+  registry:             Registry.VERRA,
+  countryRiskScore:     0.4,
+  physicalClimateRisk:  0.3,
+  verificationFrequency: 2,
+  stage:                1,
+};
+
+const DAC_CREDIT: CarbonCredit = {
+  id: 'DAC-001',
+  projectType:          ProjectType.DIRECT_AIR_CAPTURE,
+  vintage:              2023,
+  tonnes:               5000,
+  pricePerTonne:        250,
+  permanencePeriod:     100,
+  yearsElapsed:         1,
+  registry:             Registry.GOLD_STANDARD,
+  countryRiskScore:     0.1,
+  physicalClimateRisk:  0.05,
+  verificationFrequency: 1,
+  stage:                1,
+};
+
+describe('Carbon Credit Permanence Risk — IFRS 9 ECL', () => {
+
+  it('REDD+ credit has higher PFP than Direct Air Capture', () => {
+    const redd = creditECL(REDD_CREDIT);
+    const dac  = creditECL(DAC_CREDIT);
+    expect(redd.pfp12m).toBeGreaterThan(dac.pfp12m);
+  });
+
+  it('EAD equals tonnes × pricePerTonne', () => {
+    const result = creditECL(REDD_CREDIT);
+    expect(result.ead).toBe(REDD_CREDIT.tonnes * REDD_CREDIT.pricePerTonne);
+  });
+
+  it('ECL = PFP × LFF × EAD', () => {
+    const result = creditECL(REDD_CREDIT);
+    expect(result.ecl12m).toBeCloseTo(
+      result.pfp12m * result.lff * result.ead, 2
+    );
+  });
+
+  it('Stage 1 provision equals 12-month ECL', () => {
+    const result = creditECL(REDD_CREDIT);
+    if (result.stage === 1) {
+      expect(result.provisionRequired).toBeCloseTo(result.ecl12m, 4);
+    }
+  });
+
+  it('Stage 2 provision equals lifetime ECL', () => {
+    const highRiskCredit: CarbonCredit = {
+      ...REDD_CREDIT,
+      countryRiskScore: 0.8,
+      physicalClimateRisk: 0.8,
+      stage: 2,
+    };
+    const result = creditECL(highRiskCredit);
+    expect(result.stage).toBe(2);
+    expect(result.provisionRequired).toBeCloseTo(result.eclLifetime, 4);
+  });
+
+  it('Unverified registry triggers SICR', () => {
+    const unverified: CarbonCredit = {
+      ...REDD_CREDIT,
+      registry: Registry.UNVERIFIED,
+    };
+    const result = creditECL(unverified);
+    expect(result.sicr).toBe(true);
+  });
+
+  it('High country risk triggers SICR', () => {
+    const fragile: CarbonCredit = {
+      ...REDD_CREDIT,
+      countryRiskScore: 0.75,
+    };
+    const result = creditECL(fragile);
+    expect(result.sicr).toBe(true);
+  });
+
+  it('Portfolio ECL aggregates correctly across credits', () => {
+    const portfolio = portfolioECL([REDD_CREDIT, DAC_CREDIT]);
+    const totalEAD  = REDD_CREDIT.tonnes * REDD_CREDIT.pricePerTonne
+                    + DAC_CREDIT.tonnes  * DAC_CREDIT.pricePerTonne;
+    expect(portfolio.totalEAD).toBe(totalEAD);
+    expect(portfolio.credits.length).toBe(2);
+    expect(portfolio.coverageRatio).toBeGreaterThan(0);
+  });
+
+  it('Scenario-weighted ECL lies between upside and downside', () => {
+    const scenarios = scenarioWeightedECL(REDD_CREDIT);
+    expect(scenarios.weightedECL).toBeGreaterThanOrEqual(scenarios.upside);
+    expect(scenarios.weightedECL).toBeLessThanOrEqual(scenarios.downside);
+  });
+
+  it('Downside ECL exceeds base case ECL', () => {
+    const scenarios = scenarioWeightedECL(REDD_CREDIT);
+    expect(scenarios.downside).toBeGreaterThan(scenarios.baseCase);
+  });
+
+  it('Risk score is between 0 and 100', () => {
+    const result = creditECL(REDD_CREDIT);
+    expect(result.riskScore).toBeGreaterThanOrEqual(0);
+    expect(result.riskScore).toBeLessThanOrEqual(100);
+  });
+
+});
