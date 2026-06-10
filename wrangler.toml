@@ -1,6 +1,8 @@
 name = "quant-carbon"
 main = "src/api/index.ts"
 compatibility_date = "2024-01-01"
+account_id = "b9e966188eb4ee546be496497eff7c66"
+workers_dev = true
 
 [vars]
 ENVIRONMENT = "development"
