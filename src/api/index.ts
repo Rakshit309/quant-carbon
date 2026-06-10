@@ -31,6 +31,9 @@ import {
   portfolioECL, scenarioWeightedECL,
   CarbonCredit,
 } from '../models/carbon/permanenceRisk';
+import { 
+  computeVaR 
+}  from '../models/risk/portfolioVar';
 
 // ── App ───────────────────────────────────────────────────────────────────
 const app = new Hono();
@@ -379,6 +382,118 @@ app.post('/api/permanence_ecl', async (c) => {
   }
 });
 
+// ── POST /api/portfolio_var ───────────────────────────────────────────────
+// Computes 1-day VaR and Expected Shortfall for a mixed portfolio
+// of equity and carbon options using Monte Carlo full revaluation.
+//
+// Request body:
+//   positions       — array of Position objects (see below)
+//   confidenceLevel — 0.99 (default) or 0.95
+//   horizon         — trading days (default 1)
+//   N               — scenarios (default 10000)
+//   correlation     — S-vol correlation (default -0.3)
+//
+// Position fields:
+//   id, S, K, T, r, sigma, isCall, quantity, notional
+//   model: "bs" (default) or "bachelier"
+//   kappa, theta: required for bachelier model
+
+app.post('/api/portfolio_var', async (c) => {
+  try {
+    const body = await c.req.json();
+    const {
+      positions,
+      confidenceLevel = 0.99,
+      horizon         = 1,
+      N               = 10000,
+      correlation     = -0.30,
+    } = body;
+
+    if (!Array.isArray(positions) || positions.length === 0) {
+      return c.json({
+        error:   'Provide a positions array',
+        example: {
+          positions: [
+            {
+              id: 'equity-call-1', S: 100, K: 100, T: 1,
+              r: 0.05, sigma: 0.2, isCall: true,
+              quantity: 100, notional: 1, model: 'bs',
+            },
+            {
+              id: 'carbon-call-1', S: 65, K: 65, T: 1,
+              r: 0.04, sigma: 15, isCall: true,
+              quantity: 50, notional: 1, model: 'bachelier',
+              kappa: 1.0, theta: 60,
+            },
+          ],
+          confidenceLevel: 0.99,
+          horizon:         1,
+          N:               10000,
+        },
+      }, 400);
+    }
+
+    const result = computeVaR({
+      positions,
+      confidenceLevel,
+      horizon,
+      N,
+      correlation,
+    });
+
+    return c.json({
+      // ── Primary risk metrics ────────────────────────────────────
+      riskMetrics: {
+        var99:     result.var99,
+        var95:     result.var95,
+        es99:      result.es99,
+        es95:      result.es95,
+        varLabel:  `${(confidenceLevel * 100).toFixed(0)}% ${horizon}-day VaR`,
+        esLabel:   `${(confidenceLevel * 100).toFixed(0)}% ${horizon}-day Expected Shortfall`,
+      },
+
+      // ── Portfolio Greeks ────────────────────────────────────────
+      portfolio: {
+        value:       result.portfolioValue,
+        dollarDelta: result.portfolioDelta,
+        dollarGamma: result.portfolioGamma,
+        dollarVega:  result.portfolioVega,
+        positionCount: positions.length,
+      },
+
+      // ── P&L distribution ────────────────────────────────────────
+      distribution: {
+        mean:        result.meanPnL,
+        stdDev:      result.pnlStdDev,
+        worstLoss:   result.worstLoss,
+        bestGain:    result.bestGain,
+        percentiles: result.pnlPercentiles,
+        histogram:   result.scenarioPnL,
+      },
+
+      // ── Position-level breakdown ────────────────────────────────
+      positions: result.positions.map(p => ({
+        id:          p.id,
+        value:       +p.dollarValue.toFixed(2),
+        delta:       +p.delta.toFixed(5),
+        gamma:       +p.gamma.toFixed(5),
+        vega:        +p.vega.toFixed(5),
+        theta:       +p.theta.toFixed(5),
+        dollarDelta: +p.dollarDelta.toFixed(2),
+        dollarGamma: +p.dollarGamma.toFixed(2),
+        dollarVega:  +p.dollarVega.toFixed(2),
+      })),
+
+      // ── Metadata ────────────────────────────────────────────────
+      methodology: result.methodology,
+      scenarios:   result.N,
+      horizon:     `${result.horizon} trading day${result.horizon > 1 ? 's' : ''}`,
+    });
+
+  } catch (err) {
+    return c.json({ error: 'VaR calculation failed', detail: String(err) }, 500);
+  }
+});
 // ── 404 ───────────────────────────────────────────────────────────────────
 app.notFound((c) => c.json({
   error:     'Endpoint not found',
