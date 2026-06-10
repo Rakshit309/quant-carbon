@@ -2,55 +2,90 @@
 
 import { usePricingStore } from '../store/pricingStore';
 
+const TABS = [
+  { id: 'equity' as const, label: 'Equity Options', sub: 'Black-Scholes · GBM · FDM',     icon: '◈' },
+  { id: 'carbon' as const, label: 'Carbon EUA',     sub: 'Bachelier-OU · calibrated',      icon: '◉' },
+  { id: 'var'    as const, label: 'Portfolio VaR',  sub: 'MC full revaluation · ES',       icon: '◎' },
+];
+
 export function NavBar() {
   const { activeTab, setActiveTab } = usePricingStore();
 
-  const tabs = [
-    { id: 'equity' as const, label: 'Equity Options',    sub: 'Black-Scholes · GBM'       },
-    { id: 'carbon' as const, label: 'Carbon EUA',        sub: 'Bachelier-OU · calibrated'  },
-    { id: 'var'    as const, label: 'Portfolio VaR',     sub: 'MC full revaluation'        },
-  ];
-
   return (
-    <header className="border-b border-border px-4 py-3 flex items-center gap-3">
-      <div className="flex items-center gap-2">
-        <span className="text-[11px] font-bold text-blue bg-blue/10 border border-blue/30 rounded px-2 py-0.5 tracking-widest">
+    <header style={{
+      background: 'var(--surface)', borderBottom: '1px solid var(--border)',
+      padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 16,
+      position: 'sticky', top: 0, zIndex: 50,
+    }}>
+
+      {/* Logo */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{
+          fontSize: 11, fontWeight: 700, color: 'var(--blue)',
+          background: 'rgba(59,139,253,.1)', border: '1px solid rgba(59,139,253,.3)',
+          borderRadius: 5, padding: '2px 8px', letterSpacing: '.1em',
+        }}>
           QC
-        </span>
+        </div>
         <div>
-          <div className="font-bold text-[15px] tracking-tight" style={{ fontFamily: "'Syne', sans-serif", color: '#e8f2ff' }}>
+          <div style={{
+            fontFamily: "'Syne', sans-serif", fontWeight: 800,
+            fontSize: 16, color: '#e8f2ff', letterSpacing: '-.01em',
+          }}>
             quant-carbon
           </div>
-          <div className="text-[10px] text-dim">
+          <div style={{ fontSize: 9, color: 'var(--dim)' }}>
             live · quant-carbon.shoumyadeep309.workers.dev
           </div>
         </div>
       </div>
 
-      <nav className="flex gap-1 ml-6">
-        {tabs.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id)}
-            className="px-3 py-2 rounded-lg text-left transition-colors"
-            style={{
-              background:   activeTab === t.id ? 'rgba(59,139,253,.1)' : 'transparent',
-              border:       `0.5px solid ${activeTab === t.id ? 'rgba(59,139,253,.4)' : 'transparent'}`,
-              fontFamily:   'inherit',
-              cursor:       'pointer',
-            }}
-          >
-            <div className="text-xs font-medium" style={{ color: activeTab === t.id ? '#3b8bfd' : '#c9d8ea' }}>
-              {t.label}
-            </div>
-            <div className="text-[10px] text-dim">{t.sub}</div>
-          </button>
-        ))}
+      {/* Tabs */}
+      <nav style={{ display: 'flex', gap: 4, marginLeft: 16 }}>
+        {TABS.map(t => {
+          const active = activeTab === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id)}
+              style={{
+                padding: '8px 14px', borderRadius: 8, cursor: 'pointer',
+                fontFamily: 'inherit', textAlign: 'left', transition: 'all .15s',
+                background: active ? 'rgba(59,139,253,.1)' : 'transparent',
+                border:     active ? '1px solid rgba(59,139,253,.35)' : '1px solid transparent',
+              }}
+            >
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                fontSize: 12, fontWeight: active ? 600 : 400,
+                color: active ? 'var(--blue)' : 'var(--text)',
+              }}>
+                <span style={{ fontSize: 10 }}>{t.icon}</span>
+                {t.label}
+              </div>
+              <div style={{ fontSize: 9, color: 'var(--dim)', marginTop: 2 }}>{t.sub}</div>
+            </button>
+          );
+        })}
       </nav>
 
-      <div className="ml-auto flex items-center gap-2">
-        <span className="text-[10px] text-dim">78 tests passing</span>
-        <span className="w-1.5 h-1.5 rounded-full bg-green inline-block" />
+      {/* Status */}
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{
+          fontSize: 10, color: 'var(--green)',
+          background: 'rgba(45,214,122,.08)', border: '1px solid rgba(45,214,122,.2)',
+          borderRadius: 5, padding: '3px 8px', display: 'flex', alignItems: 'center', gap: 4,
+        }}>
+          <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--green)', display: 'inline-block' }} />
+          78 tests passing
+        </div>
+        <div style={{
+          fontSize: 10, color: 'var(--blue)',
+          background: 'rgba(59,139,253,.08)', border: '1px solid rgba(59,139,253,.2)',
+          borderRadius: 5, padding: '3px 8px',
+        }}>
+          API live
+        </div>
       </div>
     </header>
   );

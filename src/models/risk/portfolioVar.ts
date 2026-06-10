@@ -228,7 +228,6 @@ export function computeVaR(params: VaRParams): VaRResult {
     let scenarioValue = 0;
 
     for (const pos of positions) {
-      const notional = pos.notional ?? 1;
 
       // Shock spot price using GBM (zero drift for VaR — P-measure with μ=0)
       const S_shocked     = pos.S * Math.exp(-0.5 * pos.sigma * pos.sigma * dt

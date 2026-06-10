@@ -29,25 +29,33 @@
 
 // ── Enumerations ──────────────────────────────────────────────────────────
 
-export enum ProjectType {
-  REDD_PLUS             = 'REDD_PLUS',           // Avoided deforestation
-  IFM                   = 'IFM',                  // Improved forest management
-  BLUE_CARBON           = 'BLUE_CARBON',           // Mangroves, seagrasses
-  METHANE_CAPTURE       = 'METHANE_CAPTURE',       // Landfill, agricultural
-  RENEWABLE_ENERGY      = 'RENEWABLE_ENERGY',      // Solar, wind offsets
-  DIRECT_AIR_CAPTURE    = 'DIRECT_AIR_CAPTURE',    // Geological storage
-  COOKSTOVES            = 'COOKSTOVES',             // Efficiency, behaviour
-  SOIL_CARBON           = 'SOIL_CARBON',            // Agricultural sequestration
-}
+export type ProjectType =
+  | 'REDD_PLUS' | 'IFM' | 'BLUE_CARBON' | 'METHANE_CAPTURE'
+  | 'RENEWABLE_ENERGY' | 'DIRECT_AIR_CAPTURE' | 'COOKSTOVES' | 'SOIL_CARBON';
 
-export enum Registry {
-  VERRA                 = 'VERRA',                 // Verified Carbon Standard
-  GOLD_STANDARD         = 'GOLD_STANDARD',         // Gold Standard Foundation
-  ACR                   = 'ACR',                   // American Carbon Registry
-  CAR                   = 'CAR',                   // Climate Action Reserve
-  GLOBAL_CARBON_COUNCIL = 'GLOBAL_CARBON_COUNCIL', // GCC (MENA)
-  UNVERIFIED            = 'UNVERIFIED',             // No third-party verification
-}
+export const ProjectType = {
+  REDD_PLUS:          'REDD_PLUS' as const,
+  IFM:                'IFM' as const,
+  BLUE_CARBON:        'BLUE_CARBON' as const,
+  METHANE_CAPTURE:    'METHANE_CAPTURE' as const,
+  RENEWABLE_ENERGY:   'RENEWABLE_ENERGY' as const,
+  DIRECT_AIR_CAPTURE: 'DIRECT_AIR_CAPTURE' as const,
+  COOKSTOVES:         'COOKSTOVES' as const,
+  SOIL_CARBON:        'SOIL_CARBON' as const,
+};
+
+export type Registry =
+  | 'VERRA' | 'GOLD_STANDARD' | 'ACR' | 'CAR'
+  | 'GLOBAL_CARBON_COUNCIL' | 'UNVERIFIED';
+
+export const Registry = {
+  VERRA:                 'VERRA' as const,
+  GOLD_STANDARD:         'GOLD_STANDARD' as const,
+  ACR:                   'ACR' as const,
+  CAR:                   'CAR' as const,
+  GLOBAL_CARBON_COUNCIL: 'GLOBAL_CARBON_COUNCIL' as const,
+  UNVERIFIED:            'UNVERIFIED' as const,
+};
 
 export type ECLStage = 1 | 2 | 3;
 
@@ -220,7 +228,7 @@ function detectSICR(credit: CarbonCredit, annualPFP: number): boolean {
 // Stage assignment with rationale
 function assignStage(
   credit: CarbonCredit,
-  annualPFP: number,
+  _annualPFP: number,
   sicr: boolean
 ): { stage: ECLStage; rationale: string } {
   if (credit.stage === 3) {

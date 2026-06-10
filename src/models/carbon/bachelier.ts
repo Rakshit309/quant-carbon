@@ -31,7 +31,7 @@
 // drives very different tail behaviour in stress scenarios.
 
 import { Phi, phi } from '../../core/distributions';
-import { OUParams } from './ornsteinUhlenbeck';
+import type { OUParams } from './ornsteinUhlenbeck';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 

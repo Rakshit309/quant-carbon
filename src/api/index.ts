@@ -29,7 +29,7 @@ import {
 } from '../models/carbon/calibration';
 import {
   portfolioECL, scenarioWeightedECL,
-  CarbonCredit,
+  type CarbonCredit,
 } from '../models/carbon/permanenceRisk';
 import { 
   computeVaR 
