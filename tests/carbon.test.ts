@@ -306,3 +306,85 @@ describe('Carbon Credit Permanence Risk — IFRS 9 ECL', () => {
   });
 
 });
+// ── Calibration Tests ─────────────────────────────────────────────────────
+import {
+  calibrateOU, backtestOU, rollingCalibration,
+  calibrateAndSummarise, SAMPLE_EUA_PRICES, MONTHLY_DT
+} from '../src/models/carbon/calibration';
+
+describe('OU Calibration from EUA Historical Prices', () => {
+
+  it('Calibration recovers plausible theta near historical mean', () => {
+    const cal = calibrateOU(SAMPLE_EUA_PRICES, MONTHLY_DT);
+    // EUA prices averaged ~€68 over 2021-2024
+    // theta should land in a reasonable range around that mean
+    expect(cal.theta).toBeGreaterThan(40);
+    expect(cal.theta).toBeLessThan(100);
+  });
+
+  it('Kappa is positive — OU requires mean reversion', () => {
+    const cal = calibrateOU(SAMPLE_EUA_PRICES, MONTHLY_DT);
+    expect(cal.kappa).toBeGreaterThan(0);
+  });
+
+  it('Sigma is positive and in realistic range for EUA', () => {
+    const cal = calibrateOU(SAMPLE_EUA_PRICES, MONTHLY_DT);
+    // EUA annual vol is typically €10–25/tonne
+    expect(cal.sigma).toBeGreaterThan(1);
+    expect(cal.sigma).toBeLessThan(50);
+  });
+
+  it('Half-life is between 1 and 36 months for EUA', () => {
+    const cal = calibrateOU(SAMPLE_EUA_PRICES, MONTHLY_DT);
+    const halfLifeMonths = cal.halfLifeDays / 30.44;
+    expect(halfLifeMonths).toBeGreaterThan(1);
+    expect(halfLifeMonths).toBeLessThan(36);
+  });
+
+  it('R-squared is positive', () => {
+    const cal = calibrateOU(SAMPLE_EUA_PRICES, MONTHLY_DT);
+    expect(cal.rSquared).toBeGreaterThan(0);
+    expect(cal.rSquared).toBeLessThanOrEqual(1);
+  });
+
+  it('Backtest MAE is less than 10% of mean price', () => {
+    const cal      = calibrateOU(SAMPLE_EUA_PRICES, MONTHLY_DT);
+    const backtest = backtestOU(SAMPLE_EUA_PRICES, cal, MONTHLY_DT);
+    const meanPrice = SAMPLE_EUA_PRICES.reduce((s,v)=>s+v,0) / SAMPLE_EUA_PRICES.length;
+    expect(backtest.mae).toBeLessThan(meanPrice * 0.1);
+  });
+
+  it('Rolling calibration returns multiple windows', () => {
+    const rolling = rollingCalibration(SAMPLE_EUA_PRICES, 24, MONTHLY_DT);
+    expect(rolling.length).toBeGreaterThan(0);
+    rolling.forEach(r => {
+      expect(r.kappa).toBeGreaterThan(0);
+      expect(r.theta).toBeGreaterThan(0);
+    });
+  });
+
+  it('Full calibration summary produces all fields', () => {
+    const summary = calibrateAndSummarise();
+    expect(summary.params.kappa).toBeGreaterThan(0);
+    expect(summary.params.theta).toBeGreaterThan(0);
+    expect(summary.backtest.mae).toBeGreaterThan(0);
+    expect(summary.interpretation.halfLifeMonths).toBeTruthy();
+    expect(summary.interpretation.equilibriumRange).toBeTruthy();
+    expect(summary.interpretation.modelFitQuality).toBeTruthy();
+  });
+
+  it('Calibrated params produce MC price within range', () => {
+    const cal = calibrateOU(SAMPLE_EUA_PRICES, MONTHLY_DT);
+    const mc  = ouMonteCarlo({
+      S: 65, K: 65, T: 1, r: 0.04,
+      kappa: cal.kappa,
+      theta: cal.theta,
+      sigma: cal.sigma,
+      isCall: true,
+      N: 1000,
+    });
+    expect(mc.price).toBeGreaterThan(0);
+    expect(mc.price).toBeLessThan(65);
+  });
+
+});
