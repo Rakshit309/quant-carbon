@@ -11,7 +11,6 @@ An IFRS 9 ECL framework for carbon credit portfolios.
 [![License](https://img.shields.io/badge/license-MIT-f0a830)](LICENSE)
 [![API](https://img.shields.io/badge/API-live-2dd67a)](https://quant-carbon.shoumyadeep309.workers.dev)
 [![Docs](https://img.shields.io/badge/docs-mintlify-3b8bfd)](https://rakshit309.mintlify.app)
-
 **Live API:** `https://quant-carbon.shoumyadeep309.workers.dev`
 
 ---
