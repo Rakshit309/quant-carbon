@@ -36,3 +36,18 @@ export function Phi(x: number): number {
 export function phi(x: number): number {
   return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
 }
+
+// ── Random Normal Generator ────────────────────────────────────────────────
+// Box-Muller polar transform — generates a standard normal random variable.
+// Exported here so all simulation models (equity MC, carbon OU) share
+// one implementation. Duplication of random number generators is a
+// known source of subtle bugs in quantitative systems.
+export function randNormal(): number {
+  let u: number, v: number, s: number;
+  do {
+    u = Math.random() * 2 - 1;
+    v = Math.random() * 2 - 1;
+    s = u * u + v * v;
+  } while (s >= 1 || s === 0);
+  return u * Math.sqrt(-2 * Math.log(s) / s);
+}

@@ -1,3 +1,4 @@
+import { randNormal } from './distributions';
 // ── Monte Carlo Simulation Engine ─────────────────────────────────────────
 // Monte Carlo prices options by simulating thousands of possible future
 // price paths and averaging the discounted payoffs.
@@ -40,23 +41,6 @@ export interface MCResult {
   terminalPrices: number[]; // All terminal prices for distribution plot
 }
 
-// ── Box-Muller Polar Transform ────────────────────────────────────────────
-// Generates a standard normal random variable from two uniform randoms.
-// The polar form is used (not the basic form) because it avoids the
-// instability of log(0) and is faster on average.
-//
-// This is the same random number generation used in the IFRS 17
-// stochastic liability models — every risk-neutral simulation uses
-// a variant of this transform.
-function randNormal(): number {
-  let u: number, v: number, s: number;
-  do {
-    u = Math.random() * 2 - 1;
-    v = Math.random() * 2 - 1;
-    s = u * u + v * v;
-  } while (s >= 1 || s === 0);
-  return u * Math.sqrt(-2 * Math.log(s) / s);
-}
 
 // ── Monte Carlo Pricer ────────────────────────────────────────────────────
 export function monteCarloPricer(p: MCParams): MCResult {
