@@ -1,0 +1,74 @@
+---
+title: Carbon Credit ECL Guide
+description: IFRS 9 Expected Credit Loss applied to voluntary carbon credit portfolios
+---
+
+## Why carbon credits need ECL provisioning
+
+As carbon accounting standards mature, companies holding voluntary
+carbon credit portfolios will need balance sheet provisions against
+permanence risk — the risk that the underlying carbon removal is
+reversed before the permanence period ends.
+
+A reforestation project burns down. A methane capture facility shuts.
+A government reverses land-use policy. The credit has been retired
+against a net-zero commitment, but the physical abatement no longer exists.
+
+This is a credit risk problem. The IFRS 9 ECL framework applies directly.
+
+## The framework
+ECL = PFP × LFF × EAD
+where:
+PFP  = Permanence Failure Probability  (≡ PD)
+LFF  = Loss Factor on Failure          (≡ LGD)
+EAD  = Tonnes × price per tonne        (≡ EAD)
+
+## Stage assignment
+
+| Stage | Condition | Provision |
+|---|---|---|
+| Stage 1 | Low permanence risk | 12-month ECL |
+| Stage 2 | SICR triggered | Lifetime ECL |
+| Stage 3 | Confirmed reversal | Full write-off (EAD) |
+
+SICR triggers:
+- Country risk score > 0.6
+- Physical climate risk > 0.7
+- Unverified registry
+- Annual PFP doubles from base rate
+
+## Lifetime PFP
+
+Survival analysis over the remaining permanence period:
+P(failure before T) = 1 − (1 − annual_pfp)^T
+
+This is the same cumulative PD curve used in IFRS 9 lifetime ECL.
+
+## Worked example
+
+A 10,000 tonne REDD+ portfolio at €15/tonne:
+EAD          = 10,000 × €15 = €150,000
+Annual PFP   = 3.5% base × country adjustment × climate adjustment
+× registry discount × seasoning discount
+≈ 4.13%
+LFF          = 65% (partial recovery through jurisdictional buffers)
+12m ECL      = 4.13% × 65% × €150,000 = €4,028
+Coverage     = €4,028 / €150,000 = 2.69%
+
+The CFO provisions €4,028 against a €150,000 carbon credit portfolio.
+
+## Scenario-weighted ECL
+
+IFRS 9 requires probability-weighted ECL across multiple scenarios.
+Pass `scenarios: true` to receive base/upside/downside ECL:
+
+```json
+{
+  "scenarioWeighted": [{
+    "base":     4028.39,
+    "upside":   2841.17,
+    "downside": 6892.44,
+    "weighted": 4447.62
+  }]
+}
+```

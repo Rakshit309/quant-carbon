@@ -1,0 +1,50 @@
+{
+  "name": "quant-carbon",
+  "logo": {
+    "light": "/logo.svg",
+    "dark": "/logo.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#3b8bfd",
+    "light": "#2dd67a",
+    "dark": "#f0a830"
+  },
+  "topbarLinks": [
+    {
+      "name": "GitHub",
+      "url": "https://github.com/Rakshit309/quant-carbon"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Live API",
+    "url": "https://quant-carbon.shoumyadeep309.workers.dev"
+  },
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": ["introduction", "quickstart"]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api-reference/price",
+        "api-reference/simulate",
+        "api-reference/calibrate",
+        "api-reference/portfolio-var",
+        "api-reference/permanence-ecl"
+      ]
+    },
+    {
+      "group": "Guides",
+      "pages": [
+        "guides/equity-options",
+        "guides/carbon-options",
+        "guides/carbon-ecl"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "github": "https://github.com/Rakshit309/quant-carbon"
+  }
+}

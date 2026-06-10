@@ -1,0 +1,56 @@
+mdx---
+title: POST /api/simulate
+description: Simulate GBM or OU price paths for visualisation and scenario analysis
+---
+
+## Endpoint
+POST /api/simulate
+
+## Request body
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `S` | number | ✓ | Current spot price |
+| `T` | number | ✓ | Simulation horizon (years) |
+| `r` | number | ✓ | Risk-free rate |
+| `sigma` | number | ✓ | Volatility |
+| `model` | string | | `gbm` (default) or `ou` |
+| `kappa` | number | | OU mean-reversion speed (OU only) |
+| `theta` | number | | OU long-run equilibrium (OU only) |
+| `steps` | number | | Steps per path (default 50) |
+
+## Example — OU carbon price simulation
+
+```bash
+curl -X POST https://quant-carbon.shoumyadeep309.workers.dev/api/simulate \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-key" \
+  -d '{"model":"ou","S":65,"T":1,"r":0.04,"sigma":15,"kappa":1.0,"theta":60}'
+```
+
+## Response
+
+```json
+{
+  "model": "ou",
+  "paths": [[65, 62.9, 60.6, 63.3, ...]],
+  "terminalStats": {
+    "mean":         61.839,
+    "stdDev":        9.863,
+    "halfLifeDays": 253.0
+  },
+  "scenarios": [
+    {"horizon": 0.25, "expectedPrice": 63.894, "stdDev": 6.653,
+     "upper95": 74.839, "lower05": 52.949},
+    {"horizon": 0.5,  "expectedPrice": 63.033, "stdDev": 8.433,
+     "upper95": 76.905, "lower05": 49.161},
+    {"horizon": 1.0,  "expectedPrice": 61.839, "stdDev": 9.863,
+     "upper95": 78.064, "lower05": 45.615},
+    {"horizon": 2.0,  "expectedPrice": 60.677, "stdDev": 10.509,
+     "upper95": 77.964, "lower05": 43.389}
+  ]
+}
+```
+
+The scenarios show the OU convergence — expected price at T=2 (60.677)
+is much closer to θ=60 than at T=0.25 (63.894). Mean reversion in action.

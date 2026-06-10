@@ -1,0 +1,60 @@
+---
+title: Equity Options Guide
+description: Black-Scholes, Monte Carlo, and Finite Difference for equity vanilla options
+---
+
+## Three methods, one price
+
+quant-carbon prices every equity option three ways simultaneously.
+The three outputs converging on the same number is the primary
+correctness signal. Significant divergence signals model error.
+
+| Method | Approach | Speed | Use case |
+|---|---|---|---|
+| Black-Scholes | Analytical formula | Instant | Standard vanilla options |
+| Monte Carlo | 2,000 GBM simulations | ~50ms | Path-dependent features |
+| Crank-Nicolson | PDE finite difference | ~30ms | Model verification |
+
+## The Black-Scholes formula
+d1 = [ln(S/K) + (r + ½σ²)T] / (σ√T)
+d2 = d1 − σ√T
+Call = S·Φ(d1) − K·e^{−rT}·Φ(d2)
+Put  = K·e^{−rT}·Φ(−d2) − S·Φ(−d1)
+
+Derived from the no-arbitrage PDE:
+∂V/∂t + ½σ²S²·∂²V/∂S² + rS·∂V/∂S − rV = 0
+
+## The Greeks
+
+| Greek | Formula | Meaning |
+|---|---|---|
+| Δ Delta | Φ(d1) | P&L per €1 move in spot |
+| Γ Gamma | φ(d1)/(S·σ·√T) | Rate of change of delta |
+| ν Vega | S·φ(d1)·√T / 100 | P&L per 1% vol move |
+| Θ Theta | −[S·φ(d1)·σ/2√T + rKe^{-rT}·Φ(d2)] / 365 | Daily time decay |
+| ρ Rho | K·T·e^{-rT}·Φ(d2) / 100 | P&L per 1% rate move |
+
+## Put-call parity
+
+A fundamental no-arbitrage relationship:
+Call − Put = S − K·e^{−rT}
+
+Both the API response and the test suite verify this holds to
+four decimal places.
+
+## Benchmark
+
+ATM call (S=K=100, T=1, r=5%, σ=20%):
+- Black-Scholes: **$10.4506** (exact)
+- FDM error: < $0.02
+- MC error (N=2,000): < $0.75
+
+## Monte Carlo convergence
+
+Error shrinks as 1/√N:
+
+| Paths | Typical error |
+|---|---|
+| 2,000 | ±$0.75 |
+| 10,000 | ±$0.33 |
+| 100,000 | ±$0.10 |

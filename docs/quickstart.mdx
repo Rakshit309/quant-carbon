@@ -1,0 +1,113 @@
+---
+title: Quickstart
+description: Price your first option in 60 seconds
+---
+
+## Base URL
+https://quant-carbon.shoumyadeep309.workers.dev
+
+All requests require an `X-API-Key` header.
+Pass any non-empty string to get started.
+
+## Price an equity option
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://quant-carbon.shoumyadeep309.workers.dev/api/price \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-key" \
+  -d '{"S":100,"K":100,"T":1,"r":0.05,"sigma":0.2,"isCall":true}'
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "https://quant-carbon.shoumyadeep309.workers.dev/api/price",
+    headers={"X-API-Key": "your-key"},
+    json={"S": 100, "K": 100, "T": 1, "r": 0.05, "sigma": 0.2, "isCall": True}
+)
+print(response.json())
+```
+
+```javascript JavaScript
+const response = await fetch(
+  "https://quant-carbon.shoumyadeep309.workers.dev/api/price",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-API-Key": "your-key"
+    },
+    body: JSON.stringify({
+      S: 100, K: 100, T: 1, r: 0.05, sigma: 0.2, isCall: true
+    })
+  }
+);
+const data = await response.json();
+```
+</CodeGroup>
+
+```json Response
+{
+  "price": 10.4506,
+  "model": "black_scholes",
+  "greeks": {
+    "delta":  0.63683,
+    "gamma":  0.01876,
+    "vega":   0.37524,
+    "theta": -0.01757,
+    "rho":    0.53232
+  },
+  "crossCheck": {
+    "monteCarlo":    10.2137,
+    "finDifference": 10.4657,
+    "maxDivergence":  0.2369
+  }
+}
+```
+
+## Price a carbon EUA option
+
+```bash
+curl -X POST https://quant-carbon.shoumyadeep309.workers.dev/api/price \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-key" \
+  -d '{
+    "model": "bachelier",
+    "S": 65, "K": 65, "T": 1,
+    "r": 0.04, "sigma": 15,
+    "kappa": 1.0, "theta": 60,
+    "isCall": true
+  }'
+```
+
+```json Response
+{
+  "price": 2.4545,
+  "model": "bachelier_ou",
+  "analytics": {
+    "forwardPrice": 61.8394,
+    "halfLifeDays": 253.0,
+    "moneyness": "ATM"
+  }
+}
+```
+
+<Note>
+  Note the **positive theta** on the carbon option.
+  When S=65 > θ=60, the forward price is 61.84 — below the strike.
+  As time passes, the forward price rises toward spot, increasing
+  the option value. Black-Scholes cannot produce this behaviour.
+</Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Calibrate from data" icon="chart-line" href="/api-reference/calibrate">
+    Extract κ, θ, σ from your EUA price history
+  </Card>
+  <Card title="Portfolio VaR" icon="shield-halved" href="/api-reference/portfolio-var">
+    99% VaR and ES for a mixed portfolio
+  </Card>
+</CardGroup>

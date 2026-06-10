@@ -1,0 +1,113 @@
+---
+title: POST /api/permanence_ecl
+description: IFRS 9 Expected Credit Loss provisioning for voluntary carbon credit portfolios
+---
+
+## Endpoint
+POST /api/permanence_ecl
+
+## The framework
+
+This endpoint applies the IFRS 9 ECL framework directly to voluntary
+carbon credit portfolios. The mapping is exact:
+
+| IFRS 9 Credit Risk | Carbon Permanence Risk |
+|---|---|
+| Probability of Default | Permanence failure probability |
+| Loss Given Default | Fraction of tonnes unrecoverable |
+| Exposure at Default | Tonnes × price per tonne |
+| 12-month ECL (Stage 1) | Low permanence risk |
+| Lifetime ECL (Stage 2) | SICR triggered |
+| Write-off (Stage 3) | Confirmed project reversal |
+
+## Request body
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `credits` | Credit[] | ✓ | Array of carbon credit positions |
+| `scenarios` | boolean | | Include scenario-weighted ECL (default false) |
+
+### Credit object
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Credit identifier |
+| `projectType` | string | `REDD_PLUS`, `IFM`, `BLUE_CARBON`, `METHANE_CAPTURE`, `RENEWABLE_ENERGY`, `DIRECT_AIR_CAPTURE`, `COOKSTOVES`, `SOIL_CARBON` |
+| `vintage` | number | Year of issuance |
+| `tonnes` | number | Number of credits held |
+| `pricePerTonne` | number | Current market price |
+| `permanencePeriod` | number | Years of commitment (typically 40–100) |
+| `yearsElapsed` | number | Years since project start |
+| `registry` | string | `VERRA`, `GOLD_STANDARD`, `ACR`, `CAR`, `UNVERIFIED` |
+| `countryRiskScore` | number | 0–1: political instability |
+| `physicalClimateRisk` | number | 0–1: fire/drought/sea-level risk |
+| `verificationFrequency` | number | Years between audits |
+| `stage` | number | Current IFRS 9 stage (1, 2, or 3) |
+
+## Example
+
+```bash
+curl -X POST https://quant-carbon.shoumyadeep309.workers.dev/api/permanence_ecl \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-key" \
+  -d '{
+    "credits": [{
+      "id": "REDD-001",
+      "projectType": "REDD_PLUS",
+      "vintage": 2021, "tonnes": 10000, "pricePerTonne": 15,
+      "permanencePeriod": 40, "yearsElapsed": 3,
+      "registry": "VERRA", "countryRiskScore": 0.4,
+      "physicalClimateRisk": 0.3, "verificationFrequency": 2,
+      "stage": 1
+    }],
+    "scenarios": true
+  }'
+```
+
+## Response
+
+```json
+{
+  "summary": {
+    "totalEAD":        150000,
+    "totalProvision":    4028.39,
+    "coverageRatio":        2.686,
+    "weightedAvgPFP":       0.041
+  },
+  "staging": { "stage1": 1, "stage2": 0, "stage3": 0 },
+  "credits": [{
+    "id":        "REDD-001",
+    "stage":      1,
+    "riskScore": 62,
+    "sicr":       false,
+    "pfp12m":     0.04132,
+    "provision":  4028.39,
+    "rationale":  "Low permanence risk — 12-month ECL sufficient"
+  }]
+}
+```
+
+A €150,000 REDD+ portfolio requires **€4,028 in balance sheet provisions**.
+Coverage ratio: **2.69%** — the fraction of exposure provisioned.
+
+## SICR triggers (Stage 2)
+
+A credit moves to Stage 2 when any of the following occur:
+
+- `countryRiskScore` > 0.6 (political instability)
+- `physicalClimateRisk` > 0.7 (climate exposure)
+- `registry` = `UNVERIFIED` (no third-party oversight)
+- Annual PFP doubles from the base rate for the project type
+
+## Base permanence failure rates
+
+| Project Type | Annual PFP | LGD |
+|---|---|---|
+| Direct Air Capture | 0.3% | 5% |
+| Methane Capture | 1.0% | 90% |
+| Renewable Energy | 0.8% | 70% |
+| Blue Carbon | 2.5% | 75% |
+| IFM (Forest Management) | 2.0% | 60% |
+| Soil Carbon | 3.0% | 80% |
+| REDD+ | 3.5% | 65% |
+| Cookstoves | 4.0% | 95% |

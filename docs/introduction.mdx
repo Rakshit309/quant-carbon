@@ -1,0 +1,68 @@
+---
+title: Introduction
+description: Quantitative pricing engine for carbon and equity derivatives
+---
+
+# quant-carbon
+
+A production-grade quantitative pricing engine with a REST API.
+Three independently verified pricing methods. Five endpoints.
+An IFRS 9 ECL framework for carbon credit portfolios.
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="bolt" href="/quickstart">
+    Price your first option in 60 seconds
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/price">
+    All five endpoints documented with examples
+  </Card>
+  <Card title="Carbon Options" icon="leaf" href="/guides/carbon-options">
+    Why carbon requires a different model
+  </Card>
+  <Card title="Carbon ECL" icon="shield" href="/guides/carbon-ecl">
+    IFRS 9 applied to carbon credit portfolios
+  </Card>
+</CardGroup>
+
+## Why two models
+
+Most quantitative tools apply Black-Scholes to carbon options.
+Black-Scholes assumes prices follow Geometric Brownian Motion —
+they drift upward on average with no pull toward any equilibrium.
+
+Carbon prices do not behave this way.
+
+<CodeGroup>
+```
+Equity — Geometric Brownian Motion
+dS = r·S·dt + σ·S·dW
+```
+Carbon — Ornstein-Uhlenbeck
+dS = κ(θ − S)dt + σ·dW
+</CodeGroup>
+
+The OU process has three parameters:
+- **κ** — mean-reversion speed (how fast price returns to equilibrium)
+- **θ** — long-run equilibrium price (policy anchor, e.g. €72/tonne for EU ETS)
+- **σ** — absolute volatility in €/tonne per √year
+
+Calibrated from 48 months of EU ETS data, EUA prices show a
+**half-life of 3.7 months** — deviations from equilibrium halve
+in under four months.
+
+## What is built
+
+| Module | Contents |
+|---|---|
+| `src/core/` | BS, Monte Carlo GBM, Crank-Nicolson FDM |
+| `src/models/carbon/` | OU process, Bachelier pricing, OLS calibration |
+| `src/models/carbon/permanenceRisk.ts` | IFRS 9 ECL for carbon credits |
+| `src/models/risk/portfolioVar.ts` | Monte Carlo VaR + Expected Shortfall |
+| `src/api/` | Hono REST API on Cloudflare Workers |
+
+## Test coverage
+✓ tests/core.test.ts      24 tests   distributions, BS, MC, FDM
+✓ tests/carbon.test.ts    41 tests   Bachelier, OU, ECL, calibration
+✓ tests/risk.test.ts      13 tests   VaR, ES, portfolio Greeks
+Tests  78 passed (78)
+

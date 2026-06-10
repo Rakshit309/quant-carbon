@@ -1,0 +1,101 @@
+---
+title: POST /api/portfolio_var
+description: Monte Carlo VaR and Expected Shortfall for mixed equity and carbon option portfolios
+---
+
+## Endpoint
+POST /api/portfolio_var
+
+## What is VaR and ES
+
+**Value at Risk (VaR):** Maximum loss you expect to exceed only X% of
+trading days. A 99% 1-day VaR of €293 means: on 99 out of 100 trading
+days, losses will be less than €293.
+
+**Expected Shortfall (ES/CVaR):** Average loss within the worst X% of
+days. Required under Basel III/FRTB because it is a coherent risk
+measure — diversification always reduces it.
+
+## Request body
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `positions` | Position[] | ✓ | Array of positions (see below) |
+| `confidenceLevel` | number | | 0.99 (default) or 0.95 |
+| `horizon` | number | | Trading days (default 1) |
+| `N` | number | | Monte Carlo scenarios (default 10000) |
+| `correlation` | number | | Spot-vol correlation (default -0.30) |
+
+### Position object
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `id` | string | ✓ | Position identifier |
+| `S` | number | ✓ | Spot price |
+| `K` | number | ✓ | Strike price |
+| `T` | number | ✓ | Time to maturity (years) |
+| `r` | number | ✓ | Risk-free rate |
+| `sigma` | number | ✓ | Volatility |
+| `isCall` | boolean | ✓ | true = call, false = put |
+| `quantity` | number | ✓ | +ve = long, -ve = short |
+| `model` | string | | `bs` (default) or `bachelier` |
+| `kappa` | number | | OU speed (Bachelier only) |
+| `theta` | number | | OU equilibrium (Bachelier only) |
+
+## Example — mixed equity and carbon portfolio
+
+```bash
+curl -X POST https://quant-carbon.shoumyadeep309.workers.dev/api/portfolio_var \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-key" \
+  -d '{
+    "positions": [
+      {"id":"equity-call","S":100,"K":100,"T":1,"r":0.05,
+       "sigma":0.2,"isCall":true,"quantity":100,"model":"bs"},
+      {"id":"carbon-call","S":65,"K":65,"T":1,"r":0.04,
+       "sigma":15,"isCall":true,"quantity":50,"model":"bachelier",
+       "kappa":1.0,"theta":60}
+    ],
+    "confidenceLevel": 0.99,
+    "horizon": 1,
+    "N": 10000
+  }'
+```
+
+## Response
+
+```json
+{
+  "riskMetrics": {
+    "var99":    293.62,
+    "var95":    244.76,
+    "es99":     315.73,
+    "es95":     274.93,
+    "varLabel": "99% 1-day VaR"
+  },
+  "portfolio": {
+    "value":       1167.78,
+    "dollarDelta": 6798.29,
+    "dollarGamma": 9908.75,
+    "dollarVega":    49.49
+  },
+  "distribution": {
+    "worstLoss": 395.11,
+    "bestGain":  34826.97,
+    "mean":        270.71,
+    "stdDev":     1136.01
+  },
+  "methodology": "Monte Carlo full revaluation — correlated price and vol shocks",
+  "scenarios": 10000
+}
+```
+
+## Methodology
+
+For each of N scenarios:
+1. Shock spot price: `S' = S × exp(−½σ²dt + σ√dt × Z₁)`
+2. Shock implied vol (correlated): `σ' = σ × exp(σ_v√dt × Z₂)` where `Z₂ = ρZ₁ + √(1−ρ²)Z_ind`
+3. Reprice every position analytically under shocked parameters
+4. Record portfolio P&L
+
+Sort N P&Ls. VaR = 1st percentile loss. ES = mean of worst 1%.

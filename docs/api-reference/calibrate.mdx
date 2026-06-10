@@ -1,0 +1,79 @@
+---
+title: POST /api/calibrate
+description: Calibrate OU parameters from historical EUA price data using OLS regression
+---
+
+## Endpoint
+POST /api/calibrate
+
+Estimates κ, θ, σ from observed price data using OLS regression on
+the discrete AR(1) representation of the OU process.
+
+## Request body
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `prices` | number[] | | Historical price series. Omit to use built-in 48-month EUA dataset |
+| `dt` | number | | Time step in years (default 1/12 for monthly data) |
+
+## Example — use built-in EUA dataset
+
+```bash
+curl -X POST https://quant-carbon.shoumyadeep309.workers.dev/api/calibrate \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-key" \
+  -d '{}'
+```
+
+## Example — supply your own price series
+
+```bash
+curl -X POST https://quant-carbon.shoumyadeep309.workers.dev/api/calibrate \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-key" \
+  -d '{"prices": [55.2, 58.4, 61.1, 63.7, 60.2, 58.9, 62.4], "dt": 0.0833}'
+```
+
+## Response
+
+```json
+{
+  "parameters": {
+    "kappa":        2.2603,
+    "theta":        72.498,
+    "sigma":        24.808,
+    "halfLifeDays": 111.9
+  },
+  "fit": {
+    "rSquared":      0.7802,
+    "nObservations":   48,
+    "sampleMean":    68.242,
+    "sampleStdDev":  14.870
+  },
+  "backtest": {
+    "mae":      4.5206,
+    "rmse":     6.5370,
+    "rSquared": 0.7802,
+    "maxError": 22.361,
+    "bias":     0.000
+  },
+  "interpretation": {
+    "halfLifeMonths":   "3.7 months",
+    "equilibriumRange": "€53–€92/tonne (90% stationary interval)",
+    "modelFitQuality":  "Moderate (R²=78.0%)",
+    "recommendedUse":   "Ready for production pricing"
+  },
+  "dataSource": "sample_eua_2021_2024",
+  "nextStep": "Pass kappa, theta, sigma to POST /api/price with model: bachelier"
+}
+```
+
+## The mathematics
+
+The OU process in discrete time is a linear AR(1) model:
+S(t+dt) = α + β·S(t) + ε
+
+OLS recovers α and β. Parameters follow algebraically:
+β  = e^{−κ·dt}     →  κ = −ln(β)/dt
+α  = θ·(1−β)       →  θ = α/(1−β)
+σ² = var(ε)·2κ/(1−β²)

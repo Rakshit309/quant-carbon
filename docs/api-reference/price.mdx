@@ -1,0 +1,137 @@
+---
+title: POST /api/price
+description: Price a European option using Black-Scholes, Bachelier-OU, Monte Carlo, or Finite Difference
+---
+
+## Endpoint
+POST /api/price
+
+## Authentication
+
+All requests require `X-API-Key` header.
+
+## Request body
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `S` | number | ✓ | Current spot price |
+| `K` | number | ✓ | Strike price |
+| `T` | number | ✓ | Time to maturity (years) |
+| `r` | number | ✓ | Risk-free rate (decimal, e.g. 0.05) |
+| `sigma` | number | ✓ | Volatility (% for BS/MC/FDM, absolute €/tonne for Bachelier) |
+| `isCall` | boolean | | true = call (default), false = put |
+| `model` | string | | `bs` (default), `bachelier`, `mc`, `fdm` |
+| `kappa` | number | | OU mean-reversion speed (Bachelier only, default 1.0) |
+| `theta` | number | | OU long-run equilibrium (Bachelier only, default 0.9×S) |
+| `N` | number | | Monte Carlo paths (MC only, default 2000) |
+
+## Models
+
+<AccordionGroup>
+  <Accordion title="Black-Scholes (default)">
+    Closed-form analytical solution. Returns price, all 5 Greeks,
+    and cross-checks from Monte Carlo and Crank-Nicolson FDM.
+
+```bash
+    curl -X POST .../api/price \
+      -H "X-API-Key: key" \
+      -d '{"S":100,"K":100,"T":1,"r":0.05,"sigma":0.2}'
+```
+  </Accordion>
+
+  <Accordion title="Bachelier-OU (carbon options)">
+    Closed-form Bachelier model for options on mean-reverting
+    Ornstein-Uhlenbeck price processes. The correct model for
+    EU ETS EUA options. Requires kappa and theta parameters.
+
+```bash
+    curl -X POST .../api/price \
+      -H "X-API-Key: key" \
+      -d '{"model":"bachelier","S":65,"K":65,"T":1,"r":0.04,
+           "sigma":15,"kappa":1.0,"theta":60}'
+```
+  </Accordion>
+
+  <Accordion title="Monte Carlo GBM">
+    Statistical estimation via 2,000 GBM path simulations.
+    Returns price with 95% confidence interval.
+
+```bash
+    curl -X POST .../api/price \
+      -H "X-API-Key: key" \
+      -d '{"model":"mc","S":100,"K":100,"T":1,"r":0.05,"sigma":0.2}'
+```
+  </Accordion>
+
+  <Accordion title="Finite Difference (Crank-Nicolson)">
+    Numerical PDE solver. Unconditionally stable.
+    Returns price with Black-Scholes cross-check.
+
+```bash
+    curl -X POST .../api/price \
+      -H "X-API-Key: key" \
+      -d '{"model":"fdm","S":100,"K":100,"T":1,"r":0.05,"sigma":0.2}'
+```
+  </Accordion>
+</AccordionGroup>
+
+## Response — Black-Scholes
+
+```json
+{
+  "price": 10.4506,
+  "model": "black_scholes",
+  "instrument": "equity_vanilla",
+  "greeks": {
+    "delta":  0.63683,
+    "gamma":  0.01876,
+    "vega":   0.37524,
+    "theta": -0.01757,
+    "rho":    0.53232
+  },
+  "crossCheck": {
+    "monteCarlo":    10.2137,
+    "finDifference": 10.4657,
+    "maxDivergence":  0.2369
+  },
+  "analytics": { "moneyness": "ATM" },
+  "inputs": { "S": 100, "K": 100, "T": 1, "r": 0.05, "sigma": 0.2, "isCall": true }
+}
+```
+
+## Response — Bachelier-OU
+
+```json
+{
+  "price": 2.4545,
+  "model": "bachelier_ou",
+  "instrument": "carbon_eua",
+  "greeks": {
+    "delta":            0.13230,
+    "gamma":            0.00500,
+    "vega":             0.23941,
+    "theta":            0.00054,
+    "kappaSensitivity": -1.89506,
+    "thetaSensitivity":  0.22734
+  },
+  "analytics": {
+    "forwardPrice":   61.8394,
+    "terminalStdDev":  9.8628,
+    "intrinsicValue":  0.0000,
+    "timeValue":       2.4545,
+    "halfLifeDays":      253.0,
+    "moneyness": "ATM"
+  },
+  "crossCheck": { "monteCarlo": 2.503 }
+}
+```
+
+## Benchmark
+
+ATM call (S=K=100, T=1, r=5%, σ=20%):
+
+| Method | Price | vs Black-Scholes |
+|---|---|---|
+| Black-Scholes | $10.4506 | — |
+| Crank-Nicolson FDM | $10.4657 | +$0.015 |
+| Monte Carlo (N=2,000) | ~$10.38 | <$0.75 |

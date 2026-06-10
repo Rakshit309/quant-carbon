@@ -1,0 +1,64 @@
+---
+title: Carbon Options Guide
+description: Why carbon price dynamics require the Ornstein-Uhlenbeck model
+---
+
+## The problem with Black-Scholes for carbon
+
+Black-Scholes assumes prices follow Geometric Brownian Motion:
+dS = r·S·dt + σ·S·dW
+
+Under GBM, prices drift upward on average, volatility is proportional
+to price, and there is no equilibrium anchor. This is a reasonable
+approximation for equity indices.
+
+Carbon prices have a structural anchor. The EU ETS regulatory cap
+creates a policy equilibrium — the price where the marginal cost of
+abatement equals the permit price. When EUA prices deviate far from
+this level, market forces pull them back.
+
+## The Ornstein-Uhlenbeck solution
+dS = κ(θ − S)dt + σ·dW
+
+The `κ(θ − S)dt` term is the restoring force. When S > θ, this term
+is negative — pulling the price down. When S < θ, it is positive —
+pulling the price up.
+
+## Calibrating from data
+
+The OU process in discrete time is an AR(1) regression:
+S(t+dt) = α + β·S(t) + ε
+
+From 48 months of EU ETS data (2021–2024):
+
+| Parameter | Value | Interpretation |
+|---|---|---|
+| κ (kappa) | 2.26/year | Strong mean reversion |
+| θ (theta) | €72.50/tonne | Long-run equilibrium |
+| σ (sigma) | €24.81/√year | Absolute volatility |
+| Half-life | 3.7 months | Deviations halve in 3.7 months |
+| R² | 78% | Model explains 78% of price variation |
+
+## The positive theta insight
+
+For an ATM EUA call with S=65, K=65, θ=60, κ=1.0, T=1:
+
+The OU forward price is:
+F = S·e^{−κT} + θ·(1−e^{−κT})
+= 65·0.368 + 60·0.632
+= 23.9 + 37.9 = 61.84
+
+The forward price (61.84) is BELOW the strike (65). As time passes,
+the forward price rises back toward spot. The option becomes more
+at-the-money. Value increases. **Theta is positive.**
+
+Black-Scholes always produces negative theta. This is not a bug —
+it is a fundamental limitation of the GBM assumption applied to
+mean-reverting processes.
+
+## Workflow
+
+1. **Calibrate** — call `/api/calibrate` with your EUA price history
+2. **Price** — pass κ, θ, σ to `/api/price` with `model: "bachelier"`
+3. **Simulate** — call `/api/simulate` with `model: "ou"` to visualise paths
+4. **Risk** — include carbon positions in `/api/portfolio_var`
