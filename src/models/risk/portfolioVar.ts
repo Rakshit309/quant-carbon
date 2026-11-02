@@ -229,11 +229,28 @@ export function computeVaR(params: VaRParams): VaRResult {
 
     for (const pos of positions) {
 
-      // Shock spot price using GBM (zero drift for VaR — P-measure with μ=0)
-      const S_shocked     = pos.S * Math.exp(-0.5 * pos.sigma * pos.sigma * dt
-                          + pos.sigma * Math.sqrt(dt) * Z1);
+      // Shock spot price. The process differs by model, and so must the
+      // shock — this is the unit bug fix:
+      //   • Equity 'bs': sigma is a PERCENTAGE vol. GBM is multiplicative,
+      //     so shock geometrically with the Itô −½σ² drift:
+      //         S' = S · exp(−½σ²·dt + σ·√dt·Z1)
+      //   • Carbon 'bachelier': sigma is ABSOLUTE €/tonne vol and the OU
+      //     price process is arithmetic (normal), so shock additively:
+      //         S' = S + σ·√dt·Z1
+      //     There is deliberately NO −½σ² term here — an arithmetic process
+      //     has no variance drift, so the two branches are asymmetric by
+      //     design, not by omission. Applying the GBM shock to an absolute
+      //     sigma (e.g. 15) would imply a ~1500% move and is the bug this
+      //     replaces.
+      const S_shocked =
+        pos.model === 'bachelier'
+          ? pos.S + pos.sigma * Math.sqrt(dt) * Z1
+          : pos.S * Math.exp(-0.5 * pos.sigma * pos.sigma * dt
+                           + pos.sigma * Math.sqrt(dt) * Z1);
 
-      // Shock implied volatility — log-normal to keep vol positive
+      // Shock implied volatility. The multiplicative form σ·exp(…) is
+      // dimensionless, so it is unit-safe for both percentage (bs) and
+      // absolute (bachelier) sigma; keep it common to both models.
       const sigma_shocked = Math.max(
         pos.sigma * Math.exp(volOfVol * Math.sqrt(dt) * Z2),
         0.001

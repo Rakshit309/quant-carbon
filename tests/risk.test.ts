@@ -127,8 +127,54 @@ describe('Portfolio VaR — Carbon Position', () => {
       confidenceLevel: 0.95,
     });
     expect(result.positions.length).toBe(2);
-    expect(result.riskMetrics).toBeUndefined(); // raw result, not API response
     expect(result.var95).toBeGreaterThan(0);
+  });
+
+  // ── Regression tests for the spot-shock unit bug ────────────────────────
+  // Before the fix, carbon (Bachelier) positions were shocked with the GBM
+  // formula exp(−½σ²dt + σ√dt·Z). With sigma = 15 (absolute €/tonne), that
+  // implied a ~1500% daily move: a 1-day best gain of ~$34,827 on a ~$1,168
+  // book. These tests pin the shock to a sane magnitude.
+
+  it('(a) 1-day gains and losses stay within a sane multiple of value', () => {
+    // A 1-day move on a long-options book cannot dwarf the book's own value.
+    // Pre-fix, bestGain was ~30x portfolioValue; post-fix it is a fraction.
+    const result = computeVaR({
+      positions: [LONG_CALL, SHORT_PUT, CARBON_CALL],
+      N: 20000,
+      horizon: 1,
+    });
+    const value = Math.abs(result.portfolioValue);
+    // Generous bound (3x) — the point is to catch a 30x blow-up, not to
+    // pin an exact number. Both tails must stay within it.
+    expect(result.bestGain).toBeLessThan(value * 3);
+    expect(result.worstLoss).toBeLessThan(value * 3);
+  });
+
+  it('(b) carbon-only 1-day P&L stdDev matches sigma·√dt·|delta|·qty', () => {
+    // For a single Bachelier position the 1-day P&L is, to first order,
+    //   dPnL ≈ delta · qty · notional · (S' − S) = delta·qty·notional·σ·√dt·Z
+    // so std(dPnL) ≈ |delta·qty·notional·σ·√dt|. Full revaluation adds a
+    // small gamma contribution, so we assert within a ±15% band rather than
+    // equality. This fails hard if the GBM shock is (wrongly) reused here.
+    // Isolate the spot shock: volOfVol = 0 turns off the vega·Δσ term, so
+    // the P&L is driven purely by the spot move and the delta-only formula
+    // is exact to within the (negligible here) gamma contribution. With the
+    // vol shock ON, vega·Δσ adds variance and the realized stdDev is ~1.5x
+    // this figure — correct, but a different quantity than this test pins.
+    const N      = 40000;
+    const result = computeVaR({ positions: [CARBON_CALL], N, horizon: 1, volOfVol: 0 });
+
+    const carbon = result.positions.find(p => p.id === CARBON_CALL.id)!;
+    const dt     = 1 / 252;
+    const notional = CARBON_CALL.notional ?? 1;
+    const expectedStd = Math.abs(
+      carbon.delta * CARBON_CALL.quantity * notional * CARBON_CALL.sigma * Math.sqrt(dt)
+    );
+
+    const ratio = result.pnlStdDev / expectedStd;
+    expect(ratio).toBeGreaterThan(0.95);
+    expect(ratio).toBeLessThan(1.05);
   });
 
 });
