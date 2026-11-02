@@ -4,9 +4,9 @@
 
 Three independently verified pricing methods. Five REST API endpoints.
 An IFRS 9 ECL framework for carbon credit portfolios.
-78 passing tests.
+80 passing tests.
 
-[![Tests](https://img.shields.io/badge/tests-78%20passing-2dd67a)](tests/)
+[![Tests](https://img.shields.io/badge/tests-80%20passing-2dd67a)](tests/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3b8bfd)](src/)
 [![License](https://img.shields.io/badge/license-MIT-f0a830)](LICENSE)
 [![API](https://img.shields.io/badge/API-live-2dd67a)](https://quant-carbon.shoumyadeep309.workers.dev)
@@ -74,13 +74,19 @@ src/
 
 ---
 
+## How this was built and verified
+
+I specified the models, formulas and business rules — Black-Scholes, the Ornstein-Uhlenbeck / Bachelier pricing, and the IFRS 9 ECL mapping — and used AI coding tools to implement them in TypeScript. The maths is not taken on trust: every option price is computed three independent ways — closed-form analytical, Crank-Nicolson finite difference, and Monte Carlo — and the API returns the divergence between them, so a mistake in any one method shows up immediately. The suite has 80+ automated tests across the core, carbon and risk modules. The process catches real errors: a self-review found the portfolio VaR engine applied percentage-volatility shocks to a carbon position quoted in absolute volatility, producing impossible one-day swings. That was fixed and a regression test added so it cannot recur.
+
+---
+
 ## Quickstart
 
 ```bash
 git clone https://github.com/Rakshit309/quant-carbon.git
 cd quant-carbon
 npm install
-npm run test        # 78 tests across core, carbon, and risk modules
+npm run test        # 80 tests across core, carbon, and risk modules
 npx wrangler dev    # Start API on localhost:8787
 ```
 
