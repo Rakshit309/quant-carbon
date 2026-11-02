@@ -250,7 +250,7 @@ export function calibrateAndSummarise(
       equilibriumRange: `€${lower}–€${upper}/tonne (90% stationary interval)`,
       modelFitQuality: `${fitQuality} (R²=${(backtest.rSquared * 100).toFixed(1)}%)`,
       recommendedUse: params.kappa > 0.1 && params.rSquared > 0.7
-        ? 'Ready for production pricing'
+        ? 'Suitable for indicative pricing'
         : 'Review data quality or increase sample size',
     },
   };
