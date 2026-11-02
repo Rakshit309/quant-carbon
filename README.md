@@ -88,8 +88,7 @@ npx wrangler dev    # Start API on localhost:8787
 
 ## API reference
 
-All endpoints require `X-API-Key` header.
-Pass any non-empty string in development.
+All endpoints expect an `X-API-Key` header. This is a demo: any non-empty string is accepted. Production use would validate keys against a key store.
 
   ### Price an equity option — Black-Scholes
 
@@ -200,7 +199,7 @@ Pass any non-empty string in development.
       "halfLifeMonths":  "3.7 months",
       "equilibriumRange": "€53–€92/tonne (90% stationary interval)",
       "modelFitQuality":  "Moderate (R²=78.0%)",
-      "recommendedUse":   "Ready for production pricing"
+      "recommendedUse":   "Suitable for indicative pricing"
     },
     "nextStep": "Pass kappa, theta, sigma to POST /api/price with model: bachelier"
   }
@@ -242,10 +241,10 @@ Pass any non-empty string in development.
   ```json
   {
     "riskMetrics": {
-      "var99":   293.62,
-      "var95":   244.76,
-      "es99":    315.73,
-      "es95":    274.93,
+      "var99":   188.03,
+      "var95":   133.03,
+      "es99":    217.52,
+      "es95":    167.56,
       "varLabel": "99% 1-day VaR"
     },
     "portfolio": {
@@ -255,8 +254,8 @@ Pass any non-empty string in development.
       "dollarVega":    49.49
     },
     "distribution": {
-      "worstLoss": 395.11,
-      "bestGain":  34826.97
+      "worstLoss": 298.94,
+      "bestGain":  357.72
     },
     "methodology": "Monte Carlo full revaluation — correlated price and vol shocks",
     "scenarios": 10000
@@ -265,8 +264,8 @@ Pass any non-empty string in development.
 
   Mixed portfolio of 100 equity calls + 50 EUA calls.
   Current value: **$1,167.78**.
-  You will not lose more than **$293.62** on 99% of trading days.
-  On the worst 1% of days, expected loss is **$315.73**.
+  You will not lose more than **$188.03** on 99% of trading days.
+  On the worst 1% of days, expected loss is **$217.52**. Figures are from one representative N=10,000 Monte Carlo run and will vary by a few euro run to run.
 
   ### IFRS 9 ECL for carbon credit portfolios
 
@@ -432,76 +431,4 @@ credit risk experience to the emerging carbon market infrastructure.
 
 ## License
 
-MIT — see [LICENSE](LICENSE)# React + TypeScript + Vite
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+MIT — see [LICENSE](LICENSE)
